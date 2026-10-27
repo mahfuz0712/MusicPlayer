@@ -1,0 +1,11 @@
+{
+    "name": "MusicPlayer",
+    "description": "A simple music player for Android",
+    "version": "1.0.0",
+    "ageRating": "3+",
+    "category": "Entertainment",
+    "author": "Mohammad Mahfuz Rahman",
+    "containsAds": false,
+    "type": "app",
+    "license": "MIT"
+}
