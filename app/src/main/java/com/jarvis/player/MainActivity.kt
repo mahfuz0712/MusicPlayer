@@ -338,7 +338,7 @@ fun PlayerScreen(onBack: () -> Unit) {
         }
         T(
             "3D-FX: ${if (Audio.fxOn) "ONLINE" else "OFFLINE"}", 12f, if (Audio.fxOn) cMain else cSub,
-            mod = Modifier.fillMaxWidth().clickable { Audio.setFxOn(!Audio.fxOn) }.padding(top = 12.dp, bottom = 4.dp),
+            mod = Modifier.fillMaxWidth().clickable { Audio.updateFxOn(!Audio.fxOn) }.padding(top = 12.dp, bottom = 4.dp),
             align = TextAlign.Center
         )
     }
@@ -349,18 +349,18 @@ fun FxScreen() {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             T("3D AUDIO CORE", 16f, cMain, true, Modifier.weight(1f))
-            Chip(if (Audio.fxOn) "ONLINE" else "OFFLINE", Audio.fxOn, Modifier.width(110.dp)) { Audio.setFxOn(!Audio.fxOn) }
+            Chip(if (Audio.fxOn) "ONLINE" else "OFFLINE", Audio.fxOn, Modifier.width(110.dp)) { Audio.updateFxOn(!Audio.fxOn) }
         }
         T("// PRESETS", 12f, cSub, mod = Modifier.padding(top = 16.dp, bottom = 6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for ((n, p) in PRESETS) Chip(n.uppercase(), Audio.fx == p, Modifier.weight(1f)) { Audio.setFx(p) }
+            for ((n, p) in PRESETS) Chip(n.uppercase(), Audio.fx == p, Modifier.weight(1f)) { Audio.updateFx(p) }
         }
         T("// MANUAL TUNING", 12f, cSub, mod = Modifier.padding(top = 20.dp))
         for (k in KNOBS) {
             val v = k.get(Audio.fx)
             T("${k.label}: ${"%.2f".format(v)}", 12f, cMain, mod = Modifier.padding(top = 10.dp))
             Slider(
-                value = v, onValueChange = { Audio.setFx(k.set(Audio.fx, it)) },
+                value = v, onValueChange = { Audio.updateFx(k.set(Audio.fx, it)) },
                 valueRange = k.min..k.max, colors = sliderColors()
             )
         }
@@ -378,13 +378,13 @@ fun SettingsScreen(scanning: Boolean, onRescan: () -> Unit) {
 
         section("INTERFACE COLOR")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            ACCENTS.forEachIndexed { i, a -> Chip(a.name, Audio.accent == i, Modifier.weight(1f)) { Audio.setAccent(i) } }
+            ACCENTS.forEachIndexed { i, a -> Chip(a.name, Audio.accent == i, Modifier.weight(1f)) { Audio.updateAccent(i) } }
         }
 
         section("IGNORE TRACKS SHORTER THAN")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for ((l, v) in listOf("ALL" to 0, "15s" to 15, "30s" to 30, "60s" to 60))
-                Chip(l, Audio.minSec == v, Modifier.weight(1f)) { Audio.setMinSec(v) }
+                Chip(l, Audio.minSec == v, Modifier.weight(1f)) { Audio.updateMinSec(v) }
         }
 
         section("SLEEP TIMER")

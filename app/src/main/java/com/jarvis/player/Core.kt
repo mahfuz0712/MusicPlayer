@@ -133,13 +133,13 @@ object Audio {
     }
 
     private fun applyFx() { proc.params = if (fxOn) fx else Params() }
-    fun setFx(p: Params) {
+    fun updateFx(p: Params) {
         fx = p; applyFx()
         sp.edit().putString("fx", listOf(p.width, p.crossfeed, p.reverb, p.room, p.bassDb, p.trebleDb).joinToString(",")).apply()
     }
-    fun setFxOn(b: Boolean) { fxOn = b; applyFx(); sp.edit().putBoolean("fxOn", b).apply() }
-    fun setAccent(i: Int) { accent = i; sp.edit().putInt("accent", i).apply() }
-    fun setMinSec(s: Int) { minSec = s; sp.edit().putInt("minSec", s).apply() }
+    fun updateFxOn(b: Boolean) { fxOn = b; applyFx(); sp.edit().putBoolean("fxOn", b).apply() }
+    fun updateAccent(i: Int) { accent = i; sp.edit().putInt("accent", i).apply() }
+    fun updateMinSec(s: Int) { minSec = s; sp.edit().putInt("minSec", s).apply() }
 
     fun sleep(min: Int) {
         handler.removeCallbacks(sleepRun)
