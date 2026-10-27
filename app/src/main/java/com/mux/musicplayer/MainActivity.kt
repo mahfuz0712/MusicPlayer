@@ -7,7 +7,11 @@ import android.content.pm.PackageManager
 import android.graphics.Color as AColor
 import android.net.Uri
 import android.os.Build
+import android.database.ContentObserver
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -36,6 +40,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -118,6 +125,7 @@ fun App() {
     var granted by remember { mutableStateOf(hasPerm(ctx)) }
     var scanning by remember { mutableStateOf(false) }
     var rescan by remember { mutableIntStateOf(0) }
+    var deepScan by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         granted = hasPerm(ctx)
     }
@@ -125,9 +133,38 @@ fun App() {
     LaunchedEffect(granted, Audio.minSec, rescan) {
         if (granted) {
             scanning = true
-            Audio.songs = withContext(Dispatchers.IO) { scanSongs(ctx, Audio.minSec) }
+            if (deepScan) {
+                deepScan = false
+                indexNewFiles(ctx, Audio.songs)
+            }
+            val fresh = withContext(Dispatchers.IO) { scanSongs(ctx, Audio.minSec) }
+            if (fresh != Audio.songs) Audio.songs = fresh
             scanning = false
         }
+    }
+    // Auto refresh: Android media library changed (new download, deleted file, ...)
+    DisposableEffect(granted) {
+        if (!granted) return@DisposableEffect onDispose { }
+        val handler = Handler(Looper.getMainLooper())
+        val run = Runnable { rescan++ }
+        val obs = object : ContentObserver(handler) {
+            override fun onChange(selfChange: Boolean) {
+                handler.removeCallbacks(run)
+                handler.postDelayed(run, 1500)
+            }
+        }
+        ctx.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, obs)
+        onDispose {
+            ctx.contentResolver.unregisterContentObserver(obs)
+            handler.removeCallbacks(run)
+        }
+    }
+    // Auto refresh: coming back to the app
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val o = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) rescan++ }
+        lifecycleOwner.lifecycle.addObserver(o)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(o) }
     }
     BackHandler(showPlayer) { showPlayer = false }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -167,10 +204,10 @@ fun App() {
                                     ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")))
                                 }
                             }
-                            screen == Screen.SONGS -> SongsScreen(folder, scanning) { folder = null }
+                            screen == Screen.SONGS -> SongsScreen(folder, scanning, { deepScan = true; rescan++ }) { folder = null }
                             screen == Screen.FOLDERS -> FoldersScreen { folder = it; screen = Screen.SONGS }
                             screen == Screen.FX -> FxScreen()
-                            else -> SettingsScreen(scanning, { rescan++ }, { update = it })
+                            else -> SettingsScreen(scanning, { deepScan = true; rescan++ }, { update = it })
                         }
                     }
                     MiniPlayer { showPlayer = true }
@@ -208,7 +245,7 @@ fun SongRow(i: Int, s: Song, active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun SongsScreen(folder: String?, scanning: Boolean, onClearFolder: () -> Unit) {
+fun SongsScreen(folder: String?, scanning: Boolean, onRefresh: () -> Unit, onClearFolder: () -> Unit) {
     var q by remember { mutableStateOf("") }
     val shown = remember(Audio.songs, folder, q) {
         Audio.songs.filter {
@@ -239,10 +276,11 @@ fun SongsScreen(folder: String?, scanning: Boolean, onClearFolder: () -> Unit) {
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            T(if (scanning) "// SCANNING..." else "// ${shown.size} TRACKS INDEXED", 11f, cSub, mod = Modifier.weight(1f))
+            T(if (scanning) "// SCANNING..." else "// ${shown.size} TRACKS", 11f, cSub, mod = Modifier.weight(1f))
+            T("[REFRESH]", 12f, cMain, mod = Modifier.clickable(onClick = onRefresh).padding(6.dp))
             if (shown.isNotEmpty()) {
-                T("[PLAY ALL]", 12f, cMain, mod = Modifier.clickable { Audio.player.shuffleModeEnabled = false; Audio.play(shown, 0) }.padding(6.dp))
-                T("[SHUFFLE]", 12f, cMain, mod = Modifier.clickable {
+                T("[PLAY]", 12f, cMain, mod = Modifier.clickable { Audio.player.shuffleModeEnabled = false; Audio.play(shown, 0) }.padding(6.dp))
+                T("[SHUF]", 12f, cMain, mod = Modifier.clickable {
                     Audio.player.shuffleModeEnabled = true
                     Audio.play(shown, Random.nextInt(shown.size))
                 }.padding(6.dp))
