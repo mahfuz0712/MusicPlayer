@@ -131,13 +131,17 @@ fun ArcReactor(progress: Float, playing: Boolean, modifier: Modifier = Modifier)
             c.y + (sin(Math.toRadians(deg)) * rad).toFloat()
         )
         drawCircle(dim, r * .98f, c, style = Stroke(1.5.dp.toPx()))
-        rotate(rot, c) {
+        val lvl = if (playing) Viz.bass else 0f
+        rotate(rot * 0.15f, c) {
             for (i in 0 until 72) {
+                val k = if (i < 36) i else 71 - i
+                val bv = if (playing) Viz.bands[(k * (Viz.BANDS - 1)) / 35] else 0f
                 val big = i % 6 == 0
-                val l = if (big) .09f else .05f
+                val l = (if (big) .06f else .03f) + bv * .15f
                 drawLine(
-                    main.copy(alpha = if (big) .9f else .4f),
-                    pt(r * .97f, i * 5.0), pt(r * (.97f - l), i * 5.0), 1.5.dp.toPx()
+                    main.copy(alpha = (if (big) .65f else .35f) + bv * .35f),
+                    pt(r * .985f, i * 5.0), pt(r * (.985f - l), i * 5.0),
+                    1.5.dp.toPx() + bv * 1.5.dp.toPx()
                 )
             }
         }
@@ -167,10 +171,11 @@ fun ArcReactor(progress: Float, playing: Boolean, modifier: Modifier = Modifier)
                 Size(ir * 2, ir * 2), style = Stroke(sw)
             )
         }
+        val glow = if (playing) (0.35f + 0.65f * lvl) else pulse
         drawCircle(
-            Brush.radialGradient(listOf(main.copy(alpha = .9f * pulse), Color.Transparent), center = c, radius = r * .34f),
+            Brush.radialGradient(listOf(main.copy(alpha = .9f * glow), Color.Transparent), center = c, radius = r * .34f),
             r * .34f, c
         )
-        drawCircle(main, r * .09f * (.85f + .3f * pulse), c)
+        drawCircle(main, r * .09f * (.85f + .3f * glow), c)
     }
 }
