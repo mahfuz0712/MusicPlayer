@@ -1,4 +1,4 @@
-package com.jarvis.player
+package com.mux.musicplayer
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas

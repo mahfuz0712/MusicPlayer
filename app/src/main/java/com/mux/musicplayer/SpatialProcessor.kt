@@ -1,4 +1,4 @@
-package com.jarvis.player
+package com.mux.musicplayer
 
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor.AudioFormat

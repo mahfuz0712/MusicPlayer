@@ -1,4 +1,4 @@
-package com.jarvis.player
+package com.mux.musicplayer
 
 import android.Manifest
 import android.content.Context
@@ -44,6 +44,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.Player
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
@@ -129,8 +130,15 @@ fun App() {
         }
     }
     BackHandler(showPlayer) { showPlayer = false }
+    var update by remember { mutableStateOf<UpdateInfo?>(null) }
+    LaunchedEffect(Unit) {
+        if (isOnline(ctx)) update = checkUpdate(ctx).second
+    }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
+        update?.let { u ->
+            UpdateDialog(u, appVersion(ctx), onUpdate = { openUrl(ctx, u.apkUrl); update = null }, onCancel = { update = null })
+        }
         HudBackground {
             if (showPlayer) {
                 PlayerScreen { showPlayer = false }
@@ -162,7 +170,7 @@ fun App() {
                             screen == Screen.SONGS -> SongsScreen(folder, scanning) { folder = null }
                             screen == Screen.FOLDERS -> FoldersScreen { folder = it; screen = Screen.SONGS }
                             screen == Screen.FX -> FxScreen()
-                            else -> SettingsScreen(scanning) { rescan++ }
+                            else -> SettingsScreen(scanning, { rescan++ }, { update = it })
                         }
                     }
                     MiniPlayer { showPlayer = true }
@@ -348,7 +356,7 @@ fun PlayerScreen(onBack: () -> Unit) {
 fun FxScreen() {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            T("3D AUDIO CORE", 16f, cMain, true, Modifier.weight(1f))
+            T("MUX AUDIO CORE", 16f, cMain, true, Modifier.weight(1f))
             Chip(if (Audio.fxOn) "ONLINE" else "OFFLINE", Audio.fxOn, Modifier.width(110.dp)) { Audio.updateFxOn(!Audio.fxOn) }
         }
         T("// PRESETS", 12f, cSub, mod = Modifier.padding(top = 16.dp, bottom = 6.dp))
@@ -369,7 +377,10 @@ fun FxScreen() {
 }
 
 @Composable
-fun SettingsScreen(scanning: Boolean, onRescan: () -> Unit) {
+fun SettingsScreen(scanning: Boolean, onRescan: () -> Unit, onUpdateFound: (UpdateInfo) -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf("") }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(5000); now = System.currentTimeMillis() } }
     @Composable fun section(t: String) = T("// $t", 12f, cSub, true, Modifier.padding(top = 22.dp, bottom = 8.dp))
@@ -399,8 +410,32 @@ fun SettingsScreen(scanning: Boolean, onRescan: () -> Unit) {
         Chip(if (scanning) "SCANNING..." else "RESCAN LIBRARY", false, Modifier.fillMaxWidth()) { onRescan() }
         T("${Audio.songs.size} tracks indexed", 12f, cSub, mod = Modifier.padding(top = 8.dp))
 
+        section("UPDATES")
+        Chip("CHECK FOR UPDATES", false, Modifier.fillMaxWidth()) {
+            scope.launch {
+                status = "CHECKING..."
+                if (!isOnline(ctx)) { status = "NO INTERNET CONNECTION"; return@launch }
+                val (ok, info) = checkUpdate(ctx)
+                status = when {
+                    !ok -> "CHECK FAILED"
+                    info == null -> "UP TO DATE"
+                    else -> "NEW VERSION AVAILABLE: v${info.version}"
+                }
+                if (info != null) onUpdateFound(info)
+            }
+        }
+        if (status.isNotEmpty()) T(status, 12f, cSub, mod = Modifier.padding(top = 8.dp), lines = 2)
+
         section("ABOUT")
-        T("MUSIC PLAYER v1.0", 12f, cMain)
-        T("MODE: LOCAL ONLY // ONLINE: DISABLED", 11f, cSub, mod = Modifier.padding(top = 4.dp))
+        T("MUSIC PLAYER v${appVersion(ctx)}", 13f, cMain, true)
+        T("AUDIO CORE: MUX", 11f, cSub, mod = Modifier.padding(top = 4.dp))
+        T("SOURCE: LOCAL FILES ONLY", 11f, cSub, mod = Modifier.padding(top = 2.dp, bottom = 10.dp))
+        T("DEV: ${AppInfo.DEV_NAME}", 12f, Color(0xFFD8F3F7))
+        T("MAIL: ${AppInfo.DEV_EMAIL}", 12f, cMain, mod = Modifier.clickable { openMail(ctx, AppInfo.DEV_EMAIL) }.padding(vertical = 6.dp))
+        T("GITHUB: github.com/${AppInfo.GITHUB_USER}", 12f, cMain, mod = Modifier.clickable { openUrl(ctx, "https://github.com/${AppInfo.GITHUB_USER}") }.padding(vertical = 6.dp), lines = 2)
+
+        section("MORE APPS")
+        T("zApps Store >>", 13f, cMain, true, Modifier.clickable { openUrl(ctx, AppInfo.MORE_APPS) }.padding(vertical = 6.dp))
+        T("zappsstore-frontend.onrender.com", 11f, cSub, lines = 2)
     }
 }

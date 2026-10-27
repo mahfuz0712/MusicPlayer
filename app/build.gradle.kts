@@ -2,15 +2,18 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// Bump ONLY this when you release (tag the GitHub release with the same number)
+val appVersionName = "1.0.0"
 android {
-    namespace = "com.jarvis.player"
+    namespace = "com.mux.musicplayer"
     compileSdk = 34
     defaultConfig {
-        applicationId = "com.jarvis.player"
+        applicationId = "com.mux.musicplayer"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionName = appVersionName
+        versionCode = appVersionName.split(".").let { it[0].toInt() * 10000 + it[1].toInt() * 100 + it[2].toInt() }
     }
     val ks = file("debug.keystore")
     if (ks.exists()) {

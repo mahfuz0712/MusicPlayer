@@ -1,4 +1,4 @@
-package com.jarvis.player
+package com.mux.musicplayer
 
 import android.content.ContentUris
 import android.content.Context
@@ -80,7 +80,7 @@ object Audio {
     fun init(ctx: Context) {
         if (::player.isInitialized) return
         val app = ctx.applicationContext
-        sp = app.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+        sp = app.getSharedPreferences("mux", Context.MODE_PRIVATE)
         accent = sp.getInt("accent", 0)
         minSec = sp.getInt("minSec", 30)
         fxOn = sp.getBoolean("fxOn", true)
