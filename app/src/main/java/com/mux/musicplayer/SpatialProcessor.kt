@@ -80,6 +80,7 @@ class SpatialProcessor : BaseAudioProcessor() {
     @Volatile var params = Params()
     private var applied: Params? = null
     private var sr = 44100
+    private var inCh = 2
 
     private var bassL = Biquad(); private var bassR = Biquad()
     private var trebL = Biquad(); private var trebR = Biquad()
@@ -92,12 +93,15 @@ class SpatialProcessor : BaseAudioProcessor() {
     private var fb = 0.8f
 
     override fun onConfigure(inputAudioFormat: AudioFormat): AudioFormat {
-        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.channelCount != 2) {
-            return AudioFormat.NOT_SET // not stereo 16-bit: processor stays inactive
+        val ch = inputAudioFormat.channelCount
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || (ch != 1 && ch != 2)) {
+            return AudioFormat.NOT_SET // not 16-bit mono/stereo: processor stays inactive
         }
+        inCh = ch
         sr = inputAudioFormat.sampleRate
+        Viz.sampleRate = sr
         build()
-        return inputAudioFormat
+        return AudioFormat(sr, 2, C.ENCODING_PCM_16BIT) // always output stereo
     }
 
     override fun onFlush() { if (isActive) build() }
@@ -126,12 +130,12 @@ class SpatialProcessor : BaseAudioProcessor() {
     override fun queueInput(inputBuffer: ByteBuffer) {
         val p = params
         if (p !== applied) apply(p)
-        val frames = inputBuffer.remaining() / 4
+        val frames = inputBuffer.remaining() / (2 * inCh)
         val out = replaceOutputBuffer(frames * 4)
         val norm = 1f / (1f + cf * 0.5f)
         repeat(frames) {
             var l = inputBuffer.short / 32768f
-            var r = inputBuffer.short / 32768f
+            var r = if (inCh == 2) inputBuffer.short / 32768f else l
 
             // 1) Mid/Side widening
             val m = (l + r) * 0.5f
@@ -162,6 +166,7 @@ class SpatialProcessor : BaseAudioProcessor() {
                 l += wl * wet; r += wr * wet
             }
 
+            Viz.push((l + r) * 0.5f)
             out.putShort((l.coerceIn(-1f, 1f) * 32767f).toInt().toShort())
             out.putShort((r.coerceIn(-1f, 1f) * 32767f).toInt().toShort())
         }
