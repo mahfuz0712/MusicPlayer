@@ -139,7 +139,7 @@ fun App() {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             T("MUSIC PLAYER", 20f, cMain, true)
-                            T("// J.A.R.V.I.S AUDIO CORE", 11f, cSub)
+                            T("// MUX AUDIO CORE", 11f, cSub)
                         }
                         T(if (Audio.playing) "[ PLAYING ]" else "[ STANDBY ]", 11f, if (Audio.playing) cMain else cSub)
                     }
