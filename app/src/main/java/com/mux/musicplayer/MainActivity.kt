@@ -343,54 +343,6 @@ fun MiniPlayer(onOpen: () -> Unit) {
 }
 
 @Composable
-fun PlayerScreen(onBack: () -> Unit) {
-    val s = Audio.current
-    val st by rememberPos()
-    val pos = st.first
-    val dur = st.second
-    var drag by remember { mutableStateOf<Float?>(null) }
-    val frac = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
-    Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            T("< BACK", 13f, cMain, mod = Modifier.clickable(onClick = onBack).padding(8.dp))
-            Spacer(Modifier.weight(1f))
-            T("// NOW PLAYING", 12f, cSub)
-        }
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            ArcReactor(drag ?: frac, Audio.playing, Modifier.size(minOf(maxWidth, maxHeight)))
-        }
-        T(s?.title ?: "NO TRACK LOADED", 20f, Color.White, true, Modifier.fillMaxWidth(), 2, TextAlign.Center)
-        T(s?.artist ?: "", 13f, cSub, mod = Modifier.fillMaxWidth(), align = TextAlign.Center)
-        Slider(
-            value = drag ?: frac,
-            onValueChange = { drag = it },
-            onValueChangeFinished = { drag?.let { Audio.player.seekTo((it * dur).toLong()) }; drag = null },
-            colors = sliderColors()
-        )
-        Row(Modifier.fillMaxWidth()) {
-            T(fmt(if (drag != null) (drag!! * dur).toLong() else pos), 12f, cSub)
-            Spacer(Modifier.weight(1f))
-            T(fmt(dur), 12f, cSub)
-        }
-        Row(Modifier.fillMaxWidth().padding(top = 12.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-            T(if (Audio.shuffle) "SHUF:ON" else "SHUF", 12f, if (Audio.shuffle) cMain else cSub, mod = Modifier.clickable { Audio.toggleShuffle() }.padding(8.dp))
-            Glyph(G.PREV, 44.dp, cMain) { Audio.player.seekToPrevious() }
-            Box(Modifier.size(76.dp).border(2.dp, cMain, CircleShape), Alignment.Center) {
-                Glyph(if (Audio.playing) G.PAUSE else G.PLAY, 44.dp, cMain) { Audio.toggle() }
-            }
-            Glyph(G.NEXT, 44.dp, cMain) { Audio.player.seekToNext() }
-            val rep = when (Audio.repeat) { Player.REPEAT_MODE_ONE -> "RPT:1"; Player.REPEAT_MODE_ALL -> "RPT:ALL"; else -> "RPT" }
-            T(rep, 12f, if (Audio.repeat != Player.REPEAT_MODE_OFF) cMain else cSub, mod = Modifier.clickable { Audio.cycleRepeat() }.padding(8.dp))
-        }
-        T(
-            "3D-FX: ${if (Audio.fxOn) "ONLINE" else "OFFLINE"}", 12f, if (Audio.fxOn) cMain else cSub,
-            mod = Modifier.fillMaxWidth().clickable { Audio.updateFxOn(!Audio.fxOn) }.padding(top = 12.dp, bottom = 4.dp),
-            align = TextAlign.Center
-        )
-    }
-}
-
-@Composable
 fun FxScreen() {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
