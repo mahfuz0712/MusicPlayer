@@ -74,6 +74,7 @@ object Audio {
     var fxOn by mutableStateOf(true)
     var accent by mutableIntStateOf(0)
     var minSec by mutableIntStateOf(30)
+    var vizStyle by mutableIntStateOf(0)
     var sleepEnd by mutableLongStateOf(0L)
     private val sleepRun = Runnable { player.pause(); sleepEnd = 0L }
 
@@ -83,6 +84,7 @@ object Audio {
         sp = app.getSharedPreferences("mux", Context.MODE_PRIVATE)
         accent = sp.getInt("accent", 0)
         minSec = sp.getInt("minSec", 30)
+        vizStyle = sp.getInt("viz", 0)
         fxOn = sp.getBoolean("fxOn", true)
         sp.getString("fx", null)?.split(",")?.mapNotNull { it.toFloatOrNull() }
             ?.takeIf { it.size == 6 }?.let { fx = Params(it[0], it[1], it[2], it[3], it[4], it[5]) }
@@ -140,6 +142,7 @@ object Audio {
     fun updateFxOn(b: Boolean) { fxOn = b; applyFx(); sp.edit().putBoolean("fxOn", b).apply() }
     fun updateAccent(i: Int) { accent = i; sp.edit().putInt("accent", i).apply() }
     fun updateMinSec(s: Int) { minSec = s; sp.edit().putInt("minSec", s).apply() }
+    fun updateVizStyle(i: Int) { vizStyle = i; sp.edit().putInt("viz", i).apply() }
 
     fun sleep(min: Int) {
         handler.removeCallbacks(sleepRun)
